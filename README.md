@@ -1,16 +1,18 @@
 # system-monitoring
 
-A small monitoring daemon that sends info about server's health via protobuf
+A monitoring daemon that sends info about server's health via protobuf
 
 ## Supported OS
 
 Currently supports only Linux (Ubuntu)
 
-## Requirements
+## Functionality & Features
 
-* one of the supported OS
-* docker
-* internet access (for pulling docker images)
+* Calculating:
+  * Load average (Linux only)
+  * CPU load (Linux only)
+  * Disks load (Linux only)
+* Simple client for daemon
 
 ## Running
 
