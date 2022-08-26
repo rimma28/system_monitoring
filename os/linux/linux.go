@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -70,14 +71,6 @@ var BlockDevicesDir = "/sys/block"
 
 // DevStatsFilename is file in /sys/block/<dev_name> that shows this device stats
 var DevStatsFilename = "stat"
-
-// in docker we mount host root fs to /host
-// we make it var, not const in order to have possibility to write
-var dockerRootFSPrefix = "/host"
-
-// ValidDeviceTypes is prefixes for non-virtual block dev in Linux mountinfo
-// See https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
-var ValidDeviceTypes = []string{"3", "8", "9", "22", "33", "34"}
 
 func percentage(x, y float64) float64 {
 	if x == 0 {
@@ -179,7 +172,6 @@ func parseMounts(rootFsPrefix string) ([]string, error) {
 
 	rows := strings.Split(string(mounts), "\n")
 	for _, row := range rows {
-		// in go we cannot skip entry in Sscanf :(
 		_, err := fmt.Sscanf(row, "%s %s %s %s %s", &tmp, &tmp, &devType, &rootDentry, &mountPoint)
 		if err == io.EOF {
 			break
@@ -192,16 +184,9 @@ func parseMounts(rootFsPrefix string) ([]string, error) {
 		if rootDentry != "/" {
 			continue
 		}
-
-		// we check if FS here is not virtual (for ex., sysfs)
-		// we doesn't want to check storage for such a FS
-		for _, prefix := range ValidDeviceTypes {
-			if strings.HasPrefix(devType, prefix+":") {
-				res = append(res, mountPoint)
-				break
-			}
-		}
+		res = append(res, mountPoint)
 	}
+
 	return res, nil
 }
 
@@ -213,26 +198,30 @@ func CalcFsUtilization(rootFsPrefix string) ([]FsStats, error) {
 	res := make([]FsStats, 0)
 
 	filesystems, err := parseMounts(rootFsPrefix)
+
 	if err != nil {
 		return nil, fmt.Errorf("cannot get filesystems: %s", err.Error())
 	}
-
 	for _, fs := range filesystems {
 		prefix := rootFsPrefix
 
 		fd, err := os.Open(prefix + fs)
-
+		if os.IsPermission(err) {
+			continue
+		}
 		if err != nil {
 			fd.Close()
-			return nil, fmt.Errorf("cannot open %s fs: %s", fs, err.Error())
+			continue
+			//return nil, fmt.Errorf("cannot open %s fs: %s", fs, err.Error())
 		}
 		err = syscall.Fstatfs(int(fd.Fd()), &stats)
+
 		if err != nil {
 			fd.Close()
 			return nil, fmt.Errorf("syscall statfs returns error: %s", err.Error())
 		}
 
-		res = append(res, FsStats{ //FIXME
+		res = append(res, FsStats{
 			Name:               fs,
 			UsedGBytes:         (stats.Blocks - stats.Bfree) * uint64(stats.Bsize) / BytesInGb,
 			UsedStoragePercent: percentage(float64(stats.Blocks), float64(stats.Bfree)),
@@ -240,6 +229,11 @@ func CalcFsUtilization(rootFsPrefix string) ([]FsStats, error) {
 			UsedInodesPercent:  percentage(float64(stats.Files), float64(stats.Ffree)),
 		})
 	}
+
+	sort.Slice(res[:], func(i, j int) bool {
+		return strings.Compare(res[i].Name, res[j].Name) > 0
+	})
+
 	return res, nil
 }
 
