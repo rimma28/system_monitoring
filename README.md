@@ -13,6 +13,7 @@ Currently supports only Linux (Ubuntu)
   * CPU load (Linux only)
   * Disks load (Linux only)
 * Simple client for daemon
+* Unit tests
 
 ## Running
 
