@@ -1,3 +1,6 @@
+.PHONY: test
+test:
+	sudo $(GO) test os/linux -race -count 10
 .PHONY: all
 all:
 	docker build -t system-monitor .
@@ -18,10 +21,10 @@ test: all
 	docker run \
 	--net="host" \
 	--pid="host" \
-	--entrypoint="go" \
+	#--entrypoint="go" \
 	-v "/:/host:ro,rslave" \
 	--name system-monitor-test \
-	system-monitor test os/linux
+	system-monitor-test #test os/linux
 
 .PHONY: clean
 clean:

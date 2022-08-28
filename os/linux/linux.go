@@ -138,7 +138,7 @@ func CalcDevStats(rootFsPrefix string) ([]DevStats, error) {
 		return nil, fmt.Errorf("cannot get dev snapshot #1: %s", err.Error())
 	}
 
-	time.Sleep(1 * time.Second) //FIXME
+	time.Sleep(1 * time.Second)
 
 	devSecondSnapshot, err := getDevStats(rootFsPrefix)
 	if err != nil {
@@ -212,7 +212,6 @@ func CalcFsUtilization(rootFsPrefix string) ([]FsStats, error) {
 		if err != nil {
 			fd.Close()
 			continue
-			//return nil, fmt.Errorf("cannot open %s fs: %s", fs, err.Error())
 		}
 		err = syscall.Fstatfs(int(fd.Fd()), &stats)
 
