@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option go_package = "./protobuf";
+
+package systemMonitor;
+
+service monitor {
+  rpc getStats (Settings) returns (stream Stats) {}
+}
+
+message CPUstats {
+  double la = 1;
+  double usr = 2;
+  double sys = 3;
+  double idle = 4;
+}
+
+message DevStats {
+  string name = 1;
+  double tps = 2;
+  double read = 3;
+  double write = 4;
+}
+
+message FsStats {
+  string name = 1;
+  uint64 bytes = 2;
+  double bytesPercent = 3;
+  uint64 inode = 4;
+  double inodePercent = 5;
+}
+
+message Stats {
+  CPUstats CPUstats = 1;
+  repeated DevStats DevStats = 2;
+  repeated FsStats FsStats = 3;
+}
+
+message Settings {}
